@@ -8,7 +8,7 @@
 #   git clone https://github.com/cornelldbgroup/skinnerdb ~/SkinnerDB
 #   cd ~/SkinnerDB && mvn package
 #   # Load IMDb into SkinnerDB's local store (custom loader):
-#   java -jar target/skinnerdb-*.jar --load /home/alena/source/csv
+#   java -jar target/skinnerdb-*.jar --load /Users/alena/source/csv
 #   # SkinnerDB has no port; queries go via the CLI or REST harness.
 #
 # This script runs each JOB query through SkinnerDB's CLI and parses its
