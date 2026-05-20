@@ -26,6 +26,18 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
+COLOR_ORANGE = (252/255, 198/255, 157/255)
+COLOR_BLUE = (42/255, 159/255, 255/255)
+plt.rcParams.update({
+    "font.size": 14,
+    "axes.titlesize": 16,
+    "axes.labelsize": 16,
+    "xtick.labelsize": 14,
+    "ytick.labelsize": 14,
+    "legend.fontsize": 14,
+    "figure.titlesize": 16,
+})
+
 HERE = Path(__file__).resolve().parent
 src = HERE / "plot_data" / "all_methods.csv"
 out_dir = HERE / "plots"
@@ -47,15 +59,16 @@ for i, a in enumerate(sys.argv):
     elif a.startswith("--out-dir="): out_dir = Path(a.split("=", 1)[1])
 
 # (csv-key, display label, colour) — order chosen so the comparison plot
-# always pairs the method with PG (blue) on the left.
-PG = ("pg", "PostgreSQL", "#1f4e79")
+# always pairs the method with PG (blue) on the left.  Every alternative
+# method uses the same orange so the chart stays in the two-colour scheme.
+PG = ("pg", "PostgreSQL", COLOR_BLUE)
 METHODS = [
-    ("hq",      "HyperQO",   "#3a7c2f"),
-    ("alpha",   "AlphaJoin", "#7a4a1f"),
-    ("bao",     "Bao",       "#a35e00"),
-    ("neo",     "Neo",       "#6b4f9b"),
-    ("skinner", "SkinnerDB", "#1f6f7a"),
-    ("mcts",    "MCTS",      "#c14c2f"),
+    ("hq",      "HyperQO",   COLOR_ORANGE),
+    ("alpha",   "AlphaJoin", COLOR_ORANGE),
+    ("bao",     "Bao",       COLOR_ORANGE),
+    ("neo",     "Neo",       COLOR_ORANGE),
+    ("skinner", "SkinnerDB", COLOR_ORANGE),
+    ("mcts",    "MCTS",      COLOR_ORANGE),
 ]
 
 if not src.exists():
@@ -92,7 +105,7 @@ out_dir.mkdir(parents=True, exist_ok=True)
 
 import math
 
-ROW_MAX = 32  # max queries per subplot row before wrapping
+ROW_MAX = 500  # max queries per subplot row — keep landscape single-row by default
 
 for key, label, colour in METHODS:
     data = [(r, r.get(key)) for r in rows
@@ -130,7 +143,7 @@ for key, label, colour in METHODS:
                 edgecolor="black", linewidth=0.15, label=label)
         ax.set_xscale("log")
         ax.set_yticks(y)
-        ax.set_yticklabels(labels, fontsize=7)
+        ax.set_yticklabels(labels, fontsize=14)
         ax.set_ylim(-0.5, n_q - 0.5)
         ax.set_xlabel("e2e time (ms, log)")
         ax.grid(True, which="major", axis="x", ls=":", alpha=0.4)
@@ -139,9 +152,9 @@ for key, label, colour in METHODS:
             f"{label} vs PostgreSQL — per-query e2e on JOB "
             f"({n_q} queries · geomean {label}/PG = {gm:.2f}× · "
             f"{label} faster on {wins}, slower on {losses})",
-            y=0.995, fontsize=11,
+            y=0.995, fontsize=16,
         )
-        ax.legend(fontsize=10, ncol=2,
+        ax.legend(fontsize=14, ncol=2,
                   loc="upper center", bbox_to_anchor=(0.5, 1.02),
                   frameon=True, facecolor="white", framealpha=0.95)
         plt.tight_layout(rect=[0, 0.005, 1, 0.97])
@@ -161,11 +174,14 @@ for key, label, colour in METHODS:
         print(f"  -> {out}")
         continue
 
-    # wrap into multiple rows if there are too many queries to fit one line
+    # single landscape row by default (use --rows=N to force wrap).
     n_rows = force_rows if force_rows else max(1, math.ceil(n_q / ROW_MAX))
     per_row = math.ceil(n_q / n_rows)
-    fig_w = max(10, 0.50 * per_row)
+    fig_w = max(14, 0.40 * per_row)
     fig_h = 5.5 * n_rows + 0.5
+    # X-tick fontsize shrinks once the per-query slot gets cramped — the
+    # axis/title text from rcParams stays at 14/16.
+    xtick_fs = 14 if per_row <= 25 else (12 if per_row <= 50 else 9)
     fig, axes = plt.subplots(n_rows, 1, figsize=(fig_w, fig_h),
                              squeeze=False)
 
@@ -191,21 +207,21 @@ for key, label, colour in METHODS:
         ax.set_ylim(ymin, ymax)
         ax.set_xticks(x)
         ax.set_xticklabels([f"{r['q']}\n(n={r['n']})" for r, _ in sub],
-                           rotation=70, ha="right", fontsize=7)
+                           rotation=90, ha="center", fontsize=xtick_fs)
         ax.set_ylabel("e2e (ms, log)")
         ax.grid(True, which="major", axis="y", ls=":", alpha=0.4)
         ax.set_axisbelow(True)
         if n_rows > 1:
-            ax.set_title(f"queries {lo + 1}-{hi}", fontsize=9, loc="left")
+            ax.set_title(f"queries {lo + 1}-{hi}", fontsize=14, loc="left")
 
     fig.suptitle(
         f"{label} vs PostgreSQL — per-query e2e on JOB "
         f"({n_q} queries · geomean {label}/PG = {gm:.2f}× · "
         f"{label} faster on {wins}, slower on {losses})",
-        y=0.995, fontsize=11,
+        y=0.995, fontsize=16,
     )
     axes[0, 0].legend(
-        fontsize=10, ncol=2,
+        fontsize=14, ncol=2,
         loc="upper center", bbox_to_anchor=(0.5, 1.10 if n_rows == 1 else 1.18),
         frameon=True, facecolor="white", framealpha=0.95,
     )

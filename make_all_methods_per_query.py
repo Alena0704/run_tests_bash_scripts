@@ -25,6 +25,23 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
+COLOR_ORANGE = (252/255, 198/255, 157/255)
+COLOR_BLUE = (42/255, 159/255, 255/255)
+plt.rcParams.update({
+    "font.size": 14,
+    "axes.titlesize": 16,
+    "axes.labelsize": 16,
+    "xtick.labelsize": 14,
+    "ytick.labelsize": 14,
+    "legend.fontsize": 14,
+    "figure.titlesize": 16,
+})
+
+
+def _shade(base, factor):
+    """Darken a color towards black by `factor` in [0,1]."""
+    return tuple(c * (1 - factor) for c in base)
+
 HERE = Path(__file__).resolve().parent
 src = HERE / "plot_data" / "all_methods.csv"
 out = HERE / "plots" / "all_methods_per_query.png"
@@ -37,15 +54,15 @@ for i, a in enumerate(sys.argv):
     elif a.startswith("--min-n="): min_n = int(a.split("=", 1)[1])
     elif a.startswith("--out="):   out = Path(a.split("=", 1)[1])
 
-# (csv-key, display label, colour)
+# (csv-key, display label, colour) — PG in blue, other methods in shades of orange
 METHODS = [
-    ("pg",      "PostgreSQL", "#1f4e79"),
-    ("hq",      "HyperQO",    "#3a7c2f"),
-    ("alpha",   "AlphaJoin",  "#7a4a1f"),
-    ("bao",     "Bao",        "#a35e00"),
-    ("neo",     "Neo",        "#6b4f9b"),
-    ("skinner", "SkinnerDB",  "#1f6f7a"),
-    ("mcts",    "MCTS",       "#c14c2f"),
+    ("pg",      "PostgreSQL", COLOR_BLUE),
+    ("hq",      "HyperQO",    _shade(COLOR_ORANGE, 0.00)),
+    ("alpha",   "AlphaJoin",  _shade(COLOR_ORANGE, 0.15)),
+    ("bao",     "Bao",        _shade(COLOR_ORANGE, 0.30)),
+    ("neo",     "Neo",        _shade(COLOR_ORANGE, 0.45)),
+    ("skinner", "SkinnerDB",  _shade(COLOR_ORANGE, 0.60)),
+    ("mcts",    "MCTS",       _shade(COLOR_ORANGE, 0.75)),
 ]
 
 if not src.exists():
@@ -98,14 +115,14 @@ for i, (key, label, colour) in enumerate(METHODS):
 ax.set_yscale("log")
 ax.set_xticks(x)
 ax.set_xticklabels([f"{r['q']}\n(n={r['n']})" for r in rows],
-                   rotation=70, ha="right", fontsize=7)
+                   rotation=70, ha="right", fontsize=14)
 ax.set_ylabel("e2e time (ms, log)")
 fig.suptitle(
     "JOB per-query e2e — PostgreSQL vs learned/MCTS optimizers  "
     f"({n_queries} queries)",
-    y=0.995, fontsize=12,
+    y=0.995, fontsize=16,
 )
-ax.legend(fontsize=9, ncol=len(METHODS),
+ax.legend(fontsize=14, ncol=len(METHODS),
           loc="upper center", bbox_to_anchor=(0.5, 1.06),
           frameon=True, facecolor="white", framealpha=0.95)
 ax.grid(True, which="major", axis="y", ls=":", alpha=0.4)
@@ -116,7 +133,7 @@ ax.axhline(1.0, color="black", lw=0.5, alpha=0.3)
 
 fig.text(0.5, -0.01,
          "Bars are per-query median e2e (planning + execution).  Lower is faster.",
-         ha="center", fontsize=9, style="italic", color="#444")
+         ha="center", fontsize=14, style="italic", color="#444")
 plt.tight_layout(rect=[0, 0.01, 1, 0.92])
 out.parent.mkdir(parents=True, exist_ok=True)
 fig.savefig(out, dpi=120, bbox_inches="tight")

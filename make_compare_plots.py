@@ -21,6 +21,18 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
+COLOR_ORANGE = (252/255, 198/255, 157/255)
+COLOR_BLUE = (42/255, 159/255, 255/255)
+plt.rcParams.update({
+    "font.size": 14,
+    "axes.titlesize": 16,
+    "axes.labelsize": 16,
+    "xtick.labelsize": 14,
+    "ytick.labelsize": 14,
+    "legend.fontsize": 14,
+    "figure.titlesize": 16,
+})
+
 # --- locate latest compare results --------------------------------------
 HERE = Path(__file__).resolve().parent
 HOME = Path(os.environ.get("HOME", str(Path.home())))
@@ -141,34 +153,34 @@ if not box_data:
 else:
     positions = np.arange(len(labels))
     bp = ax.boxplot(box_data, positions=positions, widths=0.55, patch_artist=True,
-                    boxprops=dict(facecolor="#1f4e79", alpha=0.75, edgecolor="black"),
+                    boxprops=dict(facecolor=COLOR_BLUE, alpha=0.75, edgecolor="black"),
                     medianprops=dict(color="white", lw=2),
                     whiskerprops=dict(color="black"),
-                    flierprops=dict(marker="o", ms=3, mfc="#d62728",
-                                    mec="#d62728", alpha=0.5))
+                    flierprops=dict(marker="o", ms=3, mfc=COLOR_ORANGE,
+                                    mec=COLOR_ORANGE, alpha=0.7))
     # Median labels above each box
     for i, c in enumerate(labels):
         rs = ratios_per_cfg[c]
         med_r = median(rs)
         gm = math.exp(sum(math.log(x) for x in rs) / len(rs))
         ax.text(i, med_r * 1.15, f"med={med_r:.2f}×",
-                ha="center", fontsize=9, color="#1f4e79")
+                ha="center", fontsize=14, color=COLOR_BLUE)
         ax.text(i, med_r * 0.85, f"geo={gm:.2f}×",
-                ha="center", fontsize=9, color="#444")
+                ha="center", fontsize=14, color="#444")
 
     ax.axhline(1.0, color="black", lw=0.8, ls=":", alpha=0.5)
     ax.text(len(labels) - 0.3, 1.05, "1× = no change vs PG",
-            fontsize=8, color="#444", ha="right")
-    ax.axhline(2.8, color="#a35e00", lw=1, ls="--", alpha=0.6)
+            fontsize=14, color="#444", ha="right")
+    ax.axhline(2.8, color=COLOR_ORANGE, lw=1, ls="--", alpha=0.8)
     ax.text(len(labels) - 0.3, 2.95, "RPT bound 2.8× (Zhao SIGMOD'25)",
-            fontsize=8, color="#a35e00", ha="right")
-    ax.axhline(25.0, color="#a00", lw=1, ls="--", alpha=0.6)
+            fontsize=14, color=COLOR_ORANGE, ha="right")
+    ax.axhline(25.0, color=COLOR_ORANGE, lw=1, ls="--", alpha=0.6)
     ax.text(len(labels) - 0.3, 26.5, "LQO tail 25× (Lehmann VLDB'24)",
-            fontsize=8, color="#a00", ha="right")
+            fontsize=14, color=COLOR_ORANGE, ha="right")
 
     ax.set_yscale("log")
     ax.set_xticks(positions)
-    ax.set_xticklabels(labels, fontsize=11)
+    ax.set_xticklabels(labels, fontsize=14)
     ax.set_ylabel("per-query exec-time ratio (method / PG, log scale)")
     ax.set_title("slide37 — per-query latency ratio vs PostgreSQL\n"
                  f"(from {src_path.parent.name})")
@@ -179,7 +191,7 @@ else:
     fig.text(0.5, 0.005,
              "Boxes built from per-query medians of ITERS reruns on JOB.  "
              "Box = IQR, whiskers = 1.5×IQR, dots = outliers.",
-             ha="center", fontsize=8, style="italic", color="#444")
+             ha="center", fontsize=14, style="italic", color="#444")
     plt.tight_layout(rect=[0, 0.04, 1, 0.97])
     out = OUT / "slide37_worst_best_ratio.png"
     fig.savefig(out, dpi=130, bbox_inches="tight")
@@ -217,16 +229,16 @@ if non_pg_with_data and pg_med:
             n = n_rels_lookup.get(q, 0)
             (xs_s if n < GEQO_TH else xs_l).append(x)
             (ys_s if n < GEQO_TH else ys_l).append(y)
-        ax.loglog(xs_s, ys_s, "o", ms=6, alpha=0.7, color="#1f4e79",
+        ax.loglog(xs_s, ys_s, "o", ms=6, alpha=0.8, color=COLOR_BLUE,
                   label=f"n < {GEQO_TH} (DP, n={len(xs_s)})")
-        ax.loglog(xs_l, ys_l, "s", ms=8, alpha=0.9, color="#c14c2f",
+        ax.loglog(xs_l, ys_l, "s", ms=8, alpha=0.9, color=COLOR_ORANGE,
                   label=f"n ≥ {GEQO_TH} (GEQO, n={len(xs_l)})")
         ax.plot([lo, hi], [lo, hi], "k--", lw=1, alpha=0.6)
         ax.set_xlim(lo, hi); ax.set_ylim(lo, hi)
         ax.set_xlabel("PG e2e (ms, log)")
         ax.set_ylabel(f"{c} e2e (ms, log)")
         ax.set_title(f"{c} vs pg")
-        ax.legend(loc="upper left", fontsize=8)
+        ax.legend(loc="upper left", fontsize=14)
 
     for j in range(len(non_pg_with_data), nrows * ncols):
         axes[j // ncols][j % ncols].axis("off")
@@ -235,7 +247,7 @@ if non_pg_with_data and pg_med:
                  f"(from {src_path.parent.name})", y=0.995)
     fig.text(0.5, 0.005,
              "Below diagonal = method faster than PG on that query; above = slower.",
-             ha="center", fontsize=8, style="italic", color="#444")
+             ha="center", fontsize=14, style="italic", color="#444")
     plt.tight_layout(rect=[0, 0.02, 1, 0.97])
     out = OUT / "e2e_scatter_all.png"
     fig.savefig(out, dpi=130, bbox_inches="tight")
@@ -255,21 +267,21 @@ if target_cfg and pg_med:
     fig, ax = plt.subplots(figsize=(11, 0.18 * n + 1.5))
     y = np.arange(n)
     log2r = [math.log2(r) for _, r in pairs]
-    colors = ["#1f77b4" if r < -math.log2(1.05) else ("#d62728" if r > math.log2(1.05) else "#aaaaaa")
+    colors = [COLOR_BLUE if r < -math.log2(1.05) else (COLOR_ORANGE if r > math.log2(1.05) else "#aaaaaa")
               for r in log2r]
     ax.barh(y, log2r, color=colors, edgecolor="black", linewidth=0.2, height=0.85)
     ax.axvline(0, color="black", linewidth=0.7)
     ax.set_yticks(y)
-    ax.set_yticklabels([f"{q}" for q, _ in pairs], fontsize=7)
+    ax.set_yticklabels([f"{q}" for q, _ in pairs], fontsize=14)
     ax.set_xlabel("log2(method / PG)")
     ax.set_title(f"Per-query exec-time ratio {target_cfg} vs PG\n"
-                 "Blue = MCTS faster, red = MCTS slower (≥5%)")
+                 "Blue = MCTS faster, orange = MCTS slower (≥5%)")
     for yi, (q, r) in zip(y, pairs):
         if r < 0.95 or r > 1.05:
             ax.text(math.log2(r), yi,
                     f" {r:.2f}×" if r >= 1 else f"{r:.2f}× ",
                     va="center", ha="left" if r >= 1 else "right",
-                    fontsize=6.5, color="#333")
+                    fontsize=14, color="#333")
     out = OUT / "e2e_per_query_ratio_sorted.png"
     fig.savefig(out, dpi=130, bbox_inches="tight")
     print(f"  -> {out}")

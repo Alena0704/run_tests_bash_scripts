@@ -199,7 +199,19 @@ try:
     import matplotlib.pyplot as plt
     import numpy as np
 
-    plt.rcParams.update({"savefig.dpi": 130, "savefig.bbox": "tight"})
+    COLOR_ORANGE = (252/255, 198/255, 157/255)
+    COLOR_BLUE = (42/255, 159/255, 255/255)
+    plt.rcParams.update({
+        "savefig.dpi": 130,
+        "savefig.bbox": "tight",
+        "font.size": 14,
+        "axes.titlesize": 16,
+        "axes.labelsize": 16,
+        "xtick.labelsize": 14,
+        "ytick.labelsize": 14,
+        "legend.fontsize": 14,
+        "figure.titlesize": 16,
+    })
 
     # 1. slide37: ratios vs pg
     non_pg = [c for c in cfgs_norm if c != "pg"]
@@ -213,20 +225,20 @@ try:
         fig, ax = plt.subplots(figsize=(10, 5.5))
         bp = ax.boxplot(box_data, positions=range(len(labels)), widths=0.55,
                         patch_artist=True,
-                        boxprops=dict(facecolor="#1f4e79", alpha=0.75),
+                        boxprops=dict(facecolor=COLOR_BLUE, alpha=0.75),
                         medianprops=dict(color="white", lw=2),
-                        flierprops=dict(marker="o", ms=3, mfc="#d62728",
-                                        mec="#d62728", alpha=0.5))
+                        flierprops=dict(marker="o", ms=3, mfc=COLOR_ORANGE,
+                                        mec=COLOR_ORANGE, alpha=0.7))
         for i, c in enumerate(labels):
             rs = ratios(c, "pg")
             md = median(rs); gm = geomean(rs)
-            ax.text(i, md * 1.18, f"med={md:.2f}×", ha="center", fontsize=9, color="#1f4e79")
-            ax.text(i, md * 0.85, f"geo={gm:.2f}×", ha="center", fontsize=9, color="#444")
+            ax.text(i, md * 1.18, f"med={md:.2f}×", ha="center", fontsize=14, color=COLOR_BLUE)
+            ax.text(i, md * 0.85, f"geo={gm:.2f}×", ha="center", fontsize=14, color="#444")
         ax.axhline(1.0, color="black", lw=0.8, ls=":", alpha=0.5)
         ax.text(len(labels) - 0.3, 1.05, "1× = no change vs PG",
-                fontsize=8, color="#444", ha="right")
+                fontsize=14, color="#444", ha="right")
         ax.set_yscale("log")
-        ax.set_xticks(range(len(labels))); ax.set_xticklabels(labels, fontsize=11)
+        ax.set_xticks(range(len(labels))); ax.set_xticklabels(labels, fontsize=14)
         ax.set_ylabel("per-query exec-time ratio (method / PG, log)")
         ax.set_title(f"Per-query latency ratio vs PG  (from {src_path.parent.name})")
         fig.savefig(OUT / "slide37_worst_best_ratio.png")
@@ -247,8 +259,8 @@ try:
             ns.append(nrel.get(q, 0))
         if xs:
             fig, ax = plt.subplots(figsize=(7, 6.5))
-            colors = ["#1f77b4" if n < 12 else "#d62728" for n in ns]
-            ax.scatter(xs, ys, s=60, c=colors, alpha=0.65, edgecolor="black", linewidth=0.4)
+            colors = [COLOR_BLUE if n < 12 else COLOR_ORANGE for n in ns]
+            ax.scatter(xs, ys, s=60, c=colors, alpha=0.75, edgecolor="black", linewidth=0.4)
             lo = min(xs + ys) * 0.7; hi = max(xs + ys) * 1.4
             ax.plot([lo, hi], [lo, hi], "k--", lw=1, alpha=0.5, label="equal effect")
             ax.axvline(1, color="grey", lw=0.5); ax.axhline(1, color="grey", lw=0.5)
@@ -259,8 +271,8 @@ try:
             ax.set_title("AQO benefit per query: does MCTS benefit more than PG?\n"
                          "Below diagonal -> MCTS gains more from accurate cardinality")
             from matplotlib.patches import Patch
-            ax.legend(handles=[Patch(color="#1f77b4", label="n<12 (DP terrain)"),
-                               Patch(color="#d62728", label="n≥12 (GEQO terrain)")],
+            ax.legend(handles=[Patch(color=COLOR_BLUE, label="n<12 (DP terrain)"),
+                               Patch(color=COLOR_ORANGE, label="n≥12 (GEQO terrain)")],
                       loc="upper left")
             fig.savefig(OUT / "aqo_improvement.png")
             plt.close(fig)
@@ -286,16 +298,16 @@ try:
                 x = pg_med[q]; y = med_norm[(c, q)]
                 if n < 12: xs_s.append(x); ys_s.append(y)
                 else: xs_l.append(x); ys_l.append(y)
-            ax.loglog(xs_s, ys_s, "o", ms=6, alpha=0.7, color="#1f4e79",
+            ax.loglog(xs_s, ys_s, "o", ms=6, alpha=0.8, color=COLOR_BLUE,
                       label=f"n<12 ({len(xs_s)})")
-            ax.loglog(xs_l, ys_l, "s", ms=8, alpha=0.85, color="#c14c2f",
+            ax.loglog(xs_l, ys_l, "s", ms=8, alpha=0.9, color=COLOR_ORANGE,
                       label=f"n≥12 ({len(xs_l)})")
             ax.plot([lo, hi], [lo, hi], "k--", lw=1, alpha=0.5)
             ax.set_xlim(lo, hi); ax.set_ylim(lo, hi)
             ax.set_xlabel("pg e2e (ms, log)")
             ax.set_ylabel(f"{c} e2e (ms, log)")
             ax.set_title(f"{c} vs pg")
-            ax.legend(loc="upper left", fontsize=8)
+            ax.legend(loc="upper left", fontsize=14)
         for j in range(len(non_pg), nrows * ncols):
             axes[j // ncols][j % ncols].axis("off")
         fig.savefig(OUT / "e2e_scatter_all.png")

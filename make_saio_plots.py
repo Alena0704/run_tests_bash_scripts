@@ -28,6 +28,28 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
+COLOR_ORANGE = (252/255, 198/255, 157/255)
+COLOR_BLUE = (42/255, 159/255, 255/255)
+
+
+def _shade(base, factor):
+    return tuple(c * (1 - factor) for c in base)
+
+
+def _lighten(base, factor):
+    return tuple(c + (1 - c) * factor for c in base)
+
+
+plt.rcParams.update({
+    "font.size": 14,
+    "axes.titlesize": 16,
+    "axes.labelsize": 16,
+    "xtick.labelsize": 14,
+    "ytick.labelsize": 14,
+    "legend.fontsize": 14,
+    "figure.titlesize": 16,
+})
+
 # --- locate latest compare_saio results --------------------------------
 HERE = Path(__file__).resolve().parent
 HOME = Path(os.environ.get("HOME", str(Path.home())))
@@ -154,22 +176,22 @@ def scatter_panel(ax, data, title, xlab, ylab):
     lo = max(0.1, min(min(xs), min(ys)) * 0.5)
     hi = max(max(xs), max(ys)) * 2
     # split by n_rels: 12-13 small, 14-17 medium, 18+ large
-    bins = [(12, 13, "#1f4e79", "o", "12–13 rels"),
-            (14, 17, "#c14c2f", "s", "14–17 rels"),
-            (18, 99, "#3a7c2f", "^", ">17 rels")]
+    bins = [(12, 13, COLOR_BLUE,                    "o", "12–13 rels"),
+            (14, 17, COLOR_ORANGE,                  "s", "14–17 rels"),
+            (18, 99, _shade(COLOR_ORANGE, 0.45),    "^", ">17 rels")]
     for lo_n, hi_n, col, mk, lab in bins:
         bx = [x for x, n in zip(xs, [d[4] for d in data])
               if lo_n <= n <= hi_n]
         by = [y for y, n in zip(ys, [d[4] for d in data])
               if lo_n <= n <= hi_n]
         if bx:
-            ax.loglog(bx, by, mk, ms=8, alpha=0.85, color=col,
+            ax.loglog(bx, by, mk, ms=8, alpha=0.9, color=col,
                       label=f"{lab} (n={len(bx)})")
     ax.plot([lo, hi], [lo, hi], "k--", lw=1, alpha=0.6)
     ax.set_xlim(lo, hi); ax.set_ylim(lo, hi)
     ax.set_xlabel(xlab); ax.set_ylabel(ylab)
     ax.set_title(title)
-    ax.legend(loc="upper left", fontsize=8)
+    ax.legend(loc="upper left", fontsize=14)
 
 
 fig, axes = plt.subplots(1, 3, figsize=(16.5, 5.4))
@@ -186,7 +208,7 @@ fig.suptitle("SAIO vs PostgreSQL — per-query times on JOB "
              f"(n_rels ≥ 12, from {src_path.parent.name})", y=1.02)
 fig.text(0.5, -0.02,
          "Below diagonal = SAIO faster; above = SAIO slower.",
-         ha="center", fontsize=9, style="italic", color="#444")
+         ha="center", fontsize=14, style="italic", color="#444")
 plt.tight_layout()
 out = OUT / "saio_e2e_scatter.png"
 fig.savefig(out, dpi=130, bbox_inches="tight")
@@ -200,24 +222,24 @@ if r_total:
     fig, ax = plt.subplots(figsize=(11, 0.34 * n + 1.5))
     y = np.arange(n)
     log2r = [math.log2(p[1]) for p in pairs]
-    colors = ["#1f77b4" if v < -math.log2(1.05)
-              else ("#d62728" if v > math.log2(1.05) else "#aaaaaa")
+    colors = [COLOR_BLUE if v < -math.log2(1.05)
+              else (COLOR_ORANGE if v > math.log2(1.05) else "#aaaaaa")
               for v in log2r]
     ax.barh(y, log2r, color=colors, edgecolor="black", linewidth=0.2,
             height=0.78)
     ax.axvline(0, color="black", linewidth=0.7)
     ax.set_yticks(y)
     ax.set_yticklabels([f"{q} (n={nr})" for q, _, _, _, nr in pairs],
-                       fontsize=8)
+                       fontsize=14)
     ax.set_xlabel("log2(SAIO total / PG total)")
     ax.set_title("Per-query e2e ratio: SAIO vs PG\n"
-                 "Blue = SAIO faster, red = SAIO slower (≥5%)")
+                 "Blue = SAIO faster, orange = SAIO slower (≥5%)")
     for yi, (_, r, _, _, _) in zip(y, pairs):
         if r < 0.95 or r > 1.05:
             ax.text(math.log2(r), yi,
                     f" {r:.2f}×" if r >= 1 else f"{r:.2f}× ",
                     va="center", ha="left" if r >= 1 else "right",
-                    fontsize=7, color="#333")
+                    fontsize=14, color="#333")
     plt.tight_layout()
     out = OUT / "saio_e2e_ratio_sorted.png"
     fig.savefig(out, dpi=130, bbox_inches="tight")
@@ -236,21 +258,21 @@ if qs:
     pg_exec  = [med_exec.get(("pg", q), 0)   for q in qs]
     sa_plan  = [med_plan.get(("saio", q), 0) for q in qs]
     sa_exec  = [med_exec.get(("saio", q), 0) for q in qs]
-    ax.bar(x - width / 2, pg_plan, width, color="#1f4e79",
+    ax.bar(x - width / 2, pg_plan, width, color=COLOR_BLUE,
            label="PG planning")
     ax.bar(x - width / 2, pg_exec, width, bottom=pg_plan,
-           color="#76a8d8", label="PG execution")
-    ax.bar(x + width / 2, sa_plan, width, color="#7a2f1f",
+           color=_lighten(COLOR_BLUE, 0.5), label="PG execution")
+    ax.bar(x + width / 2, sa_plan, width, color=_shade(COLOR_ORANGE, 0.35),
            label="SAIO planning")
     ax.bar(x + width / 2, sa_exec, width, bottom=sa_plan,
-           color="#d8917b", label="SAIO execution")
+           color=COLOR_ORANGE, label="SAIO execution")
     ax.set_xticks(x)
     ax.set_xticklabels([f"{q}\n(n={n_rels_lookup[q]})" for q in qs],
-                       rotation=60, ha="right", fontsize=8)
+                       rotation=60, ha="right", fontsize=14)
     ax.set_yscale("log")
     ax.set_ylabel("time (ms, log)")
     ax.set_title("Planning vs Execution per query: PG vs SAIO")
-    ax.legend(fontsize=9, ncol=2)
+    ax.legend(fontsize=14, ncol=2)
     plt.tight_layout()
     out = OUT / "saio_planning_vs_exec.png"
     fig.savefig(out, dpi=130, bbox_inches="tight")

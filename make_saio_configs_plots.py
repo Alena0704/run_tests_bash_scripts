@@ -27,6 +27,28 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
+COLOR_ORANGE = (252/255, 198/255, 157/255)
+COLOR_BLUE = (42/255, 159/255, 255/255)
+
+
+def _shade(base, factor):
+    return tuple(c * (1 - factor) for c in base)
+
+
+def _lighten(base, factor):
+    return tuple(c + (1 - c) * factor for c in base)
+
+
+plt.rcParams.update({
+    "font.size": 14,
+    "axes.titlesize": 16,
+    "axes.labelsize": 16,
+    "xtick.labelsize": 14,
+    "ytick.labelsize": 14,
+    "legend.fontsize": 14,
+    "figure.titlesize": 16,
+})
+
 HERE = Path(__file__).resolve().parent
 HOME = Path(os.environ.get("HOME", str(Path.home())))
 BENCH = Path(os.environ.get("BENCH_ROOT", str(HOME / "min_job")))
@@ -136,21 +158,21 @@ def scatter_panel(ax, data, title, xlab, ylab):
     xs, ys, ns = [d[2] for d in data], [d[3] for d in data], [d[4] for d in data]
     lo = max(0.1, min(min(xs), min(ys)) * 0.5)
     hi = max(max(xs), max(ys)) * 2
-    bins = [(2, 7,   "#8a8aa0", "v", "2–7"),
-            (8, 11,  "#1f4e79", "o", "8–11"),
-            (12, 13, "#c14c2f", "s", "12–13"),
-            (14, 17, "#3a7c2f", "D", "14–17"),
-            (18, 99, "#7a4a1f", "^", ">17")]
+    bins = [(2, 7,   _lighten(COLOR_BLUE, 0.5),  "v", "2–7"),
+            (8, 11,  COLOR_BLUE,                  "o", "8–11"),
+            (12, 13, COLOR_ORANGE,                "s", "12–13"),
+            (14, 17, _shade(COLOR_ORANGE, 0.30),  "D", "14–17"),
+            (18, 99, _shade(COLOR_ORANGE, 0.55),  "^", ">17")]
     for lo_n, hi_n, col, mk, lab in bins:
         bx = [x for x, n in zip(xs, ns) if lo_n <= n <= hi_n]
         by = [y for y, n in zip(ys, ns) if lo_n <= n <= hi_n]
         if bx:
-            ax.loglog(bx, by, mk, ms=8, alpha=0.85, color=col,
+            ax.loglog(bx, by, mk, ms=8, alpha=0.9, color=col,
                       label=f"{lab} (n={len(bx)})")
     ax.plot([lo, hi], [lo, hi], "k--", lw=1, alpha=0.6)
     ax.set_xlim(lo, hi); ax.set_ylim(lo, hi)
     ax.set_xlabel(xlab); ax.set_ylabel(ylab); ax.set_title(title)
-    ax.legend(loc="upper left", fontsize=8)
+    ax.legend(loc="upper left", fontsize=14)
 
 for col, cfg in enumerate(non_pg):
     scatter_panel(axes[0, col], ratios(med_plan, cfg),
@@ -169,7 +191,7 @@ fig.suptitle(f"SAIO configs vs PostgreSQL — JOB "
              f"({len(queries)} queries, n_rels {_min_n}–{_max_n})  "
              f"({src_path.parent.name})", y=1.0)
 fig.text(0.5, -0.005, "Below diagonal = config faster than PG; above = slower.",
-         ha="center", fontsize=9, style="italic", color="#444")
+         ha="center", fontsize=14, style="italic", color="#444")
 plt.tight_layout()
 out = OUT / "saio_configs_e2e_scatter.png"
 fig.savefig(out, dpi=130, bbox_inches="tight")
@@ -184,23 +206,23 @@ for col, cfg in enumerate(non_pg):
     pairs = sorted(ratios(med_total, cfg), key=lambda t: t[1])
     n = len(pairs); y = np.arange(n)
     log2r = [math.log2(p[1]) for p in pairs]
-    colors = ["#1f77b4" if v < -math.log2(1.05)
-              else ("#d62728" if v > math.log2(1.05) else "#aaaaaa")
+    colors = [COLOR_BLUE if v < -math.log2(1.05)
+              else (COLOR_ORANGE if v > math.log2(1.05) else "#aaaaaa")
               for v in log2r]
     ax.barh(y, log2r, color=colors, edgecolor="black", linewidth=0.2,
             height=0.78)
     ax.axvline(0, color="black", linewidth=0.7)
     ax.set_yticks(y)
     ax.set_yticklabels([f"{q} (n={nr})" for q, _, _, _, nr in pairs],
-                       fontsize=8)
+                       fontsize=14)
     ax.set_xlabel("log2(config total / PG total)")
-    ax.set_title(f"{cfg}: e2e ratio per query\nblue=faster, red=slower (≥5%)")
+    ax.set_title(f"{cfg}: e2e ratio per query\nblue=faster, orange=slower (≥5%)")
     for yi, (_, r, _, _, _) in zip(y, pairs):
         if r < 0.95 or r > 1.05:
             ax.text(math.log2(r), yi,
                     f" {r:.2f}×" if r >= 1 else f"{r:.2f}× ",
                     va="center", ha="left" if r >= 1 else "right",
-                    fontsize=7, color="#333")
+                    fontsize=14, color="#333")
 plt.tight_layout()
 out = OUT / "saio_configs_e2e_ratio.png"
 fig.savefig(out, dpi=130, bbox_inches="tight")
@@ -254,14 +276,16 @@ def bin_abs(med_map, cfg):
 
 
 bar_order = ["pg"] + non_pg
+# PG keeps the blue; every SAIO variant is plotted as a different shade of
+# the project orange so all bars stay in the two-colour palette.
 bar_colors = {
-    "pg":             "#1f4e79",
-    "saio_default":   "#7a2f1f",
-    "saio_mid":       "#7a4a1f",
-    "saio_cheap":     "#3a7c2f",
-    "saio_cheap_r3":  "#1f6a72",
-    "saio_cheap_r5":  "#5a1f5f",
-    "saio_cheapest":  "#a3611c",
+    "pg":             COLOR_BLUE,
+    "saio_default":   COLOR_ORANGE,
+    "saio_mid":       _shade(COLOR_ORANGE, 0.15),
+    "saio_cheap":     _shade(COLOR_ORANGE, 0.30),
+    "saio_cheap_r3":  _shade(COLOR_ORANGE, 0.45),
+    "saio_cheap_r5":  _shade(COLOR_ORANGE, 0.60),
+    "saio_cheapest":  _shade(COLOR_ORANGE, 0.75),
 }
 
 for ax, (label, med_map) in zip(axes,
@@ -283,18 +307,18 @@ for ax, (label, med_map) in zip(axes,
         for x, n, m in zip(xs + offset, ns, meds):
             if m and m > 0:
                 ax.text(x, m * 1.08, f"{m:.0f}\n(n={n})", ha="center",
-                        fontsize=6.5, color="#222")
+                        fontsize=14, color="#222")
     ax.set_xticks(xs)
-    ax.set_xticklabels([b[2] for b in N_BINS], fontsize=9)
+    ax.set_xticklabels([b[2] for b in N_BINS], fontsize=14)
     ax.set_yscale("log")
     ax.set_ylabel(f"median {label} time (ms, log)")
     ax.set_title(label)
-    ax.legend(fontsize=7, loc="upper left")
+    ax.legend(fontsize=14, loc="upper left")
 fig.suptitle(f"SAIO vs PostgreSQL — median per-query planning & execution "
              f"binned by n_rels  ({src_path.parent.name})\n"
              f"params shown as eq=equilibrium_factor  T=initial_temperature_factor  "
              f"red=temperature_reduction_factor  freeze=moves_before_frozen  R=restarts",
-             y=1.02, fontsize=11)
+             y=1.02, fontsize=16)
 plt.tight_layout()
 out = OUT / "saio_configs_by_nrels.png"
 fig.savefig(out, dpi=130, bbox_inches="tight")
@@ -334,13 +358,15 @@ if qs:
     fig_h = max(8, fig_w / 3.5)
     fig, ax = plt.subplots(figsize=(fig_w, fig_h))
     x = np.arange(len(qs))
+    # Dark = planning, light = execution.  PG keeps the blue pair, every SAIO
+    # variant uses an orange pair (different shades for variants).
     palette = {
-        "pg":             ("#1f4e79", "#76a8d8"),
-        "saio_default":   ("#7a2f1f", "#d8917b"),
-        "saio_mid":       ("#7a4a1f", "#d8b27b"),
-        "saio_cheap":     ("#3a5f1f", "#9bc97b"),
-        "saio_cheap_r3":  ("#1f5a5f", "#7bc8d4"),
-        "saio_cheap_r5":  ("#5a1f5f", "#c97bd4"),
+        "pg":             (COLOR_BLUE,                 _lighten(COLOR_BLUE, 0.5)),
+        "saio_default":   (_shade(COLOR_ORANGE, 0.35), COLOR_ORANGE),
+        "saio_mid":       (_shade(COLOR_ORANGE, 0.45), _lighten(COLOR_ORANGE, 0.15)),
+        "saio_cheap":     (_shade(COLOR_ORANGE, 0.55), _lighten(COLOR_ORANGE, 0.30)),
+        "saio_cheap_r3":  (_shade(COLOR_ORANGE, 0.65), _lighten(COLOR_ORANGE, 0.45)),
+        "saio_cheap_r5":  (_shade(COLOR_ORANGE, 0.75), _lighten(COLOR_ORANGE, 0.55)),
     }
     for i, cfg in enumerate(order):
         offset = (i - (n_cfg - 1) / 2.0) * width
@@ -353,12 +379,12 @@ if qs:
                label=f"{cfg} execution")
     ax.set_xticks(x)
     ax.set_xticklabels([f"{q}\n(n={n_lookup[q]})" for q in qs],
-                       rotation=60, ha="right", fontsize=8)
+                       rotation=60, ha="right", fontsize=14)
     ax.set_yscale("log")
     ax.set_ylabel("time (ms, log)")
     title_extra = f" — pg vs {best_saio}" if best_saio else ""
     ax.set_title(stack_title + title_extra)
-    ax.legend(fontsize=8, ncol=2)
+    ax.legend(fontsize=14, ncol=2)
     plt.tight_layout()
     out = OUT / "saio_configs_planning_vs_exec.png"
     fig.savefig(out, dpi=130, bbox_inches="tight")

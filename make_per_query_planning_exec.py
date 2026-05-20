@@ -23,6 +23,28 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
+COLOR_ORANGE = (252/255, 198/255, 157/255)
+COLOR_BLUE = (42/255, 159/255, 255/255)
+
+
+def _shade(base, factor):
+    return tuple(c * (1 - factor) for c in base)
+
+
+def _lighten(base, factor):
+    return tuple(c + (1 - c) * factor for c in base)
+
+
+plt.rcParams.update({
+    "font.size": 14,
+    "axes.titlesize": 16,
+    "axes.labelsize": 16,
+    "xtick.labelsize": 14,
+    "ytick.labelsize": 14,
+    "legend.fontsize": 14,
+    "figure.titlesize": 16,
+})
+
 HERE = Path(__file__).resolve().parent
 HOME = Path(os.environ.get("HOME", str(Path.home())))
 BENCH = Path(os.environ.get("BENCH_ROOT", str(HOME / "min_job")))
@@ -90,12 +112,13 @@ ordered_cfgs = ["pg"] + non_pg
 print(f"Configs: {ordered_cfgs}")
 
 # colour palette for each (cfg, role) — dark = planning, light = execution
+# PG: blue · other configs: shades of orange.
 PALETTE = [
-    ("#1f4e79", "#76a8d8"),  # pg
-    ("#7a2f1f", "#d8917b"),  # saio / first non-pg
-    ("#1f6f3a", "#86c79d"),
-    ("#6b4f9b", "#bda7d7"),
-    ("#a87a1f", "#e0c98a"),
+    (COLOR_BLUE,                       _lighten(COLOR_BLUE, 0.5)),   # pg
+    (_shade(COLOR_ORANGE, 0.35),       COLOR_ORANGE),                 # saio / first non-pg
+    (_shade(COLOR_ORANGE, 0.55),       _lighten(COLOR_ORANGE, 0.25)),
+    (_shade(COLOR_ORANGE, 0.20),       _lighten(COLOR_ORANGE, 0.45)),
+    (_shade(COLOR_ORANGE, 0.70),       _lighten(COLOR_ORANGE, 0.10)),
 ]
 
 queries = [q for q in queries if n_rels_lookup.get(q, 0) >= min_n]
@@ -134,10 +157,10 @@ for q in queries:
         total = p + e
         if total > 0:
             ax.text(xi, total * 1.05, f"{total:,.0f} ms",
-                    ha="center", fontsize=8, color="#222")
+                    ha="center", fontsize=14, color="#222")
 
     ax.set_xticks(x)
-    ax.set_xticklabels(ordered_cfgs, fontsize=10, rotation=20, ha="right")
+    ax.set_xticklabels(ordered_cfgs, fontsize=14, rotation=20, ha="right")
     ax.set_yscale("log")
     ax.set_ylabel("time (ms, log)")
     ymax = max(p + e for p, e in vals) * 3
@@ -148,7 +171,7 @@ for q in queries:
         for cfg, (p, e) in zip(ordered_cfgs[1:], vals[1:]):
             sub.append(f"{cfg}/pg={((p+e)/pg_total):.2f}×")
     ax.set_title(f"{q}  (n_rels={n_rels_lookup[q]})\n" + "  ".join(sub),
-                 fontsize=10)
+                 fontsize=16)
 
     handles, labels = [], []
     for i, cfg in enumerate(ordered_cfgs):
@@ -157,7 +180,7 @@ for q in queries:
         labels.append(f"{cfg} planning")
         handles.append(plt.Rectangle((0, 0), 1, 1, color=light))
         labels.append(f"{cfg} execution")
-    ax.legend(handles, labels, fontsize=7, loc="upper left", ncol=1)
+    ax.legend(handles, labels, fontsize=14, loc="upper left", ncol=1)
     plt.tight_layout()
     out = OUT / f"{q}.png"
     fig.savefig(out, dpi=120, bbox_inches="tight")
